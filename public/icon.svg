@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="HomeHub">
+  <defs>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2b574b"/>
+      <stop offset="1" stop-color="#172a26"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="35%" cy="25%" r="75%">
+      <stop offset="0" stop-color="#9dd1b7" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#9dd1b7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0b0e14"/>
+  <rect x="40" y="40" width="432" height="432" rx="92" fill="url(#panel)"/>
+  <rect x="40" y="40" width="432" height="432" rx="92" fill="url(#glow)"/>
+  <path d="M256 120c15 82 54 121 136 136-82 15-121 54-136 136-15-82-54-121-136-136 82-15 121-54 136-136Z" fill="#b8e3d2"/>
+  <path d="M370 118c5 26 18 39 44 44-26 5-39 18-44 44-5-26-18-39-44-44 26-5 39-18 44-44Z" fill="#9dd1b7" opacity=".8"/>
+  <path d="M148 340c4 20 14 30 34 34-20 4-30 14-34 34-4-20-14-30-34-34 20-4 30-14 34-34Z" fill="#7fb59b" opacity=".7"/>
+</svg>

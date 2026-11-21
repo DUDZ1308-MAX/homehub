@@ -1,0 +1,96 @@
+[
+  {
+    "name": "Dashboard loads live time and compact weather forecast",
+    "sanity": true,
+    "viewport": "desktop",
+    "covers": [
+      "live clock and date display",
+      "generic time-based Good morning, Good afternoon, or Good evening greeting without a family name",
+      "browser location permission and device GPS-based local weather lookup",
+      "reverse-geocoded current-area label without a hardcoded city",
+      "location-denied guidance and manual location retry",
+      "7-day high and low forecast",
+      "daily precipitation chance",
+      "UV index, sunrise, sunset and wind details",
+      "condition-based animated weather background",
+      "compact modular dark weather dashboard with location header, current conditions, UV, wind, humidity and sunrise/sunset cards",
+      "responsive weather layout with compact 7-day outlook and no hourly forecast section",
+      "pause and resume weather animation",
+      "reduced-motion accessibility",
+      "installed PWA launches in full-screen display mode with standalone fallback"
+    ],
+    "description": "Verifies the dashboard requests browser location permission, shows weather for the device's current area, and provides a compact weekly forecast with controllable condition-based background effects.",
+    "steps": [
+      "Open the HomeHub dashboard and allow location access when the browser asks",
+      "Verify the displayed place reflects the device's current area and review the daily forecast and weather detail cards",
+      "Pause and resume the animated weather background"
+    ],
+    "expected": "The dashboard asks for browser location access and uses the device's actual latitude and longitude to load current conditions and forecasts for that area, with a matching nearby place name when available. It never silently substitutes Regina. If permission is denied or unavailable, it explains how to enable location and offers a retry. The dashboard also shows a generic time-based greeting, a 7-day forecast, weather details, condition-based background animation with pause/resume, respects reduced-motion preference, and requests full-screen launch mode when installed with standalone fallback. The weather area uses a compact modular dark dashboard layout with a location/live header, current conditions panel, separate UV, wind, humidity and sunrise/sunset metric cards, and a 7-day outlook with no hourly forecast section. It uses live device-local weather values only; no sample city, fake air-quality value or hardcoded temperatures are shown."
+  },
+  {
+    "name": "Create and retain household calendar events",
+    "viewport": "desktop",
+    "covers": [
+      "manual event creation",
+      "event date and time selection",
+      "selected-date agenda and upcoming event rendering",
+      "local date handling across time zones",
+      "month calendar alignment and event markers",
+      "weather, calendar and agenda dashboard layout"
+    ],
+    "description": "Verifies household events can be scheduled for a chosen future date and time and remain available after refreshing the dashboard.",
+    "steps": [
+      "Open the month calendar",
+      "Choose Add event in Today's agenda",
+      "Enter Family dinner as the event name",
+      "Choose a future date and set the time to 6:30 PM",
+      "Save the event and open the matching calendar date",
+      "Refresh the dashboard"
+    ],
+    "expected": "The event is saved with the selected date and 6:30 PM time, appears under the selected date in the upcoming list and month calendar, and the dashboard sections remain visible."
+  },
+  {
+    "name": "Google Calendar setup and connection guardrail",
+    "viewport": "mobile",
+    "covers": [
+      "Google OAuth client ID configuration",
+      "Google Calendar read-only authorization flow",
+      "missing OAuth configuration guidance",
+      "responsive tablet and mobile settings"
+    ],
+    "description": "Verifies the dashboard explains the required Google OAuth setup and prevents a connection attempt without a client ID.",
+    "steps": [
+      "Open dashboard settings",
+      "Leave the Google OAuth Client ID empty",
+      "Close settings and select Sync calendar"
+    ],
+    "expected": "The settings explain Google Cloud setup and the dashboard asks for a Client ID instead of claiming a calendar is connected."
+  },
+  {
+    "name": "UCB Radio live playback and audio-reactive soundwave",
+    "viewport": "desktop",
+    "covers": [
+      "live UCB Radio Canada stream playback",
+      "station location picker grouped by province",
+      "retained station selection after reload",
+      "automatic audio-reactive soundwave synced to the UCB stream",
+      "soundwave returns to idle when radio pauses",
+      "live, buffering and error playback feedback",
+      "interactive tone bars remain playable while radio is playing",
+      "selectable synthesizer sound waveforms",
+      "adjustable synthesizer volume",
+      "responsive side-by-side radio and synthesizer layout"
+    ],
+    "description": "Verifies the UCB Radio card plays a live Canadian station, lets the listener choose a station location, and drives the soundwave from the actual stream audio without a browser sharing prompt.",
+    "steps": [
+      "Open the HomeHub dashboard and locate the UCB Radio card",
+      "Choose a station location from the Station location picker",
+      "Press Play live radio and verify the UCB stream starts and the soundwave reacts to the audio automatically",
+      "Change to a different station location while playing and verify playback switches to that feed",
+      "Press Pause radio and verify audio stops and the soundwave returns to idle",
+      "Choose a different synthesizer sound and tap several soundwave bars",
+      "Reload the dashboard and verify the chosen station location is retained"
+    ],
+    "expected": "The UCB Radio card starts and pauses a live UCB Radio Canada stream from a single button. The station location picker lists the national feeds and city stations grouped by province, persists the choice locally, and switches the live stream without a page reload. While audio plays, the soundwave bars react automatically to the real stream through the Web Audio API, with no tab-sharing prompt; they return to idle when playback pauses, and a status line reports connecting, buffering, live and error states. Synth bars remain playable while the radio is on, sound selection changes the tone, volume adjusts loudness, and the layout stacks cleanly on mobile."
+  }
+]
