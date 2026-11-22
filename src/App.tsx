@@ -191,6 +191,7 @@ function App() {
   const soundwaveFrameRef = useRef<number | null>(null);
   const soundwaveLevelsRef = useRef<number[]>([]);
   const soundwavePathRef = useRef<SVGPathElement | null>(null);
+  const visualizerFormatRef = useRef<SoundwaveFormat>('bars');
   const [selectedStationId, setSelectedStationId] = useLocalStorageState<string>(
     'homehub-ucb-station',
     DEFAULT_UCB_STATION_ID
@@ -204,6 +205,7 @@ function App() {
   const [waveform, setWaveform] = useState<OscillatorType>('triangle');
   const [synthVolume, setSynthVolume] = useState(0.22);
   const [visualizerFormat, setVisualizerFormat] = useState<SoundwaveFormat>('bars');
+  visualizerFormatRef.current = visualizerFormat;
 
   const radioPlaying =
     radioPhase === 'connecting' ||
@@ -245,7 +247,7 @@ function App() {
     const cx = SOUNDWAVE_WIDTH / 2;
     const cy = SOUNDWAVE_HEIGHT / 2;
 
-    if (visualizerFormat === 'bars') {
+    if (visualizerFormatRef.current === 'bars') {
       const bars = soundwaveCurvesRef.current;
       const glows = soundwaveGlowRefs.current;
       for (let index = 0; index < bars.length; index += 1) {
@@ -260,7 +262,7 @@ function App() {
           glow.setAttribute('y', (SOUNDWAVE_HEIGHT - height).toFixed(1));
         }
       }
-    } else if (visualizerFormat === 'circle') {
+    } else if (visualizerFormatRef.current === 'circle') {
       const elements = soundwaveCurvesRef.current;
       const radius = 72;
       const thickness = 4;
@@ -282,7 +284,7 @@ function App() {
         );
         el.setAttribute('opacity', (0.4 + levels[index] * 0.6).toFixed(2));
       }
-    } else if (visualizerFormat === 'wave') {
+    } else if (visualizerFormatRef.current === 'wave') {
       const path = soundwavePathRef.current;
       if (!path) return;
       const amplitude = 36;
@@ -297,7 +299,7 @@ function App() {
         d += ` L${points[i][0].toFixed(1)},${points[i][1].toFixed(1)}`;
       }
       path.setAttribute('d', d);
-    } else if (visualizerFormat === 'radial') {
+    } else if (visualizerFormatRef.current === 'radial') {
       const elements = soundwaveCurvesRef.current;
       const maxRadius = 78;
       const thickness = 3;
@@ -316,7 +318,7 @@ function App() {
         );
         el.setAttribute('opacity', (0.3 + levels[index] * 0.7).toFixed(2));
       }
-    } else if (visualizerFormat === 'dots') {
+    } else if (visualizerFormatRef.current === 'dots') {
       const elements = soundwaveCurvesRef.current;
       const baseRadius = 2;
       const maxRadius = 9;
@@ -1220,7 +1222,7 @@ function App() {
                   </linearGradient>
                 ))}
               </defs>
-              {visualizerFormat === 'bars' && (
+              {visualizerFormatRef.current === 'bars' && (
                 <>
                   <g aria-hidden="true" className="soundwave-glow">
                     {SOUNDWAVE_CURVES.map((_, index) => {
@@ -1266,7 +1268,7 @@ function App() {
                   </g>
                 </>
               )}
-              {visualizerFormat === 'circle' && (
+              {visualizerFormatRef.current === 'circle' && (
                 <g aria-hidden="true" className="soundwave-circle">
                   {SOUNDWAVE_CURVES.map((_, index) => {
                     const gradientIndex = index % SOUNDWAVE_GRADIENTS.length;
@@ -1286,7 +1288,7 @@ function App() {
                   })}
                 </g>
               )}
-              {visualizerFormat === 'wave' && (
+              {visualizerFormatRef.current === 'wave' && (
                 <path
                   ref={soundwavePathRef}
                   className="soundwave-wave-path"
@@ -1297,7 +1299,7 @@ function App() {
                   strokeLinejoin="round"
                 />
               )}
-              {visualizerFormat === 'radial' && (
+              {visualizerFormatRef.current === 'radial' && (
                 <g aria-hidden="true" className="soundwave-radial">
                   {SOUNDWAVE_CURVES.map((_, index) => {
                     const gradientIndex = index % SOUNDWAVE_GRADIENTS.length;
@@ -1319,7 +1321,7 @@ function App() {
                   })}
                 </g>
               )}
-              {visualizerFormat === 'dots' && (
+              {visualizerFormatRef.current === 'dots' && (
                 <g aria-hidden="true" className="soundwave-dots">
                   {SOUNDWAVE_CURVES.map((_, index) => {
                     const gradientIndex = index % SOUNDWAVE_GRADIENTS.length;
