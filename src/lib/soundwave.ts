@@ -196,4 +196,34 @@ const buildCurves = () =>
     };
   });
 
+export type SoundwaveFormat = 'bars' | 'circle' | 'wave' | 'radial' | 'dots';
+
+export const SOUNDWAVE_FORMATS: { id: SoundwaveFormat; label: string; description: string }[] = [
+  {
+    id: 'bars',
+    label: 'Equalizer Bars',
+    description: 'Vertical bars that pulse with the music',
+  },
+  {
+    id: 'circle',
+    label: 'Circular',
+    description: 'Bars arranged in a rotating circle',
+  },
+  {
+    id: 'wave',
+    label: 'Oscilloscope Wave',
+    description: 'Smooth waveform tracing the audio',
+  },
+  {
+    id: 'radial',
+    label: 'Radial Bars',
+    description: 'Bars radiating from the center',
+  },
+  {
+    id: 'dots',
+    label: 'Particle Dots',
+    description: 'Dots that grow and shrink with the beat',
+  },
+];
+
 export const SOUNDWAVE_CURVES = buildCurves();

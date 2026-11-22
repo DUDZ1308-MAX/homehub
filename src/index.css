@@ -1706,6 +1706,49 @@ button {
 @media (prefers-reduced-motion:reduce) {
   .soundwave-bar, .soundwave-glow-bar, .synth-wave-visual::before { animation:none !important; }
 }
+
+/* Circular visualizer */
+.soundwave-circle-bar {
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+/* Oscilloscope wave */
+.soundwave-wave-path {
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+/* Radial visualizer */
+.soundwave-radial-bar {
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+/* Particle dots */
+.soundwave-dot {
+  will-change: r, opacity;
+}
+
+/* Visualizer format dropdown */
+.synth-wave-select select {
+  min-width: 105px;
+  padding: 7px 25px 7px 9px;
+  color: #dce5ec;
+  border: 1px solid #394553;
+  border-radius: 8px;
+  background: #111923;
+  font-size: 10px;
+}
+
+/* Ensure the SVG container accommodates circular/radial formats */
+.synth-wave-visual svg {
+  overflow: visible;
+}
+
+.soundwave-circle,
+.soundwave-radial {
+  transform-origin: 480px 95px;
+}
 .synth-controls { display: flex; align-items: center; gap: 10px; color: #a6b2bd; font-size: 10px; }
 .synth-controls span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .synth-controls input { flex: 1; min-width: 60px; accent-color: #a9d9c3; }

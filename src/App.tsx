@@ -42,6 +42,9 @@ import {
   SOUNDWAVE_GRADIENTS,
   SOUNDWAVE_HEIGHT,
   SOUNDWAVE_WIDTH,
+  SOUNDWAVE_CENTER,
+  type SoundwaveFormat,
+  SOUNDWAVE_FORMATS,
 } from './lib/soundwave';
 import { useLocalStorageState } from './hooks/useLocalStorageState';
 import { useNow } from './hooks/useNow';
@@ -182,11 +185,12 @@ function App() {
   const radioAnalyserRef = useRef<AnalyserNode | null>(null);
   const radioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const radioRequestRef = useRef(0);
-  const soundwaveCurvesRef = useRef<(SVGRectElement | null)[]>([]);
+  const soundwaveCurvesRef = useRef<(SVGElement | null)[]>([]);
   const soundwaveGlowRefs = useRef<(SVGRectElement | null)[]>([]);
   const soundwaveZonesRef = useRef<(SVGRectElement | null)[]>([]);
   const soundwaveFrameRef = useRef<number | null>(null);
-  const soundwaveScalesRef = useRef<number[]>([]);
+  const soundwaveLevelsRef = useRef<number[]>([]);
+  const soundwavePathRef = useRef<SVGPathElement | null>(null);
   const [selectedStationId, setSelectedStationId] = useLocalStorageState<string>(
     'homehub-ucb-station',
     DEFAULT_UCB_STATION_ID
@@ -199,6 +203,7 @@ function App() {
   const [focusedBar, setFocusedBar] = useState(0);
   const [waveform, setWaveform] = useState<OscillatorType>('triangle');
   const [synthVolume, setSynthVolume] = useState(0.22);
+  const [visualizerFormat, setVisualizerFormat] = useState<SoundwaveFormat>('bars');
 
   const radioPlaying =
     radioPhase === 'connecting' ||
@@ -228,20 +233,104 @@ function App() {
       cancelAnimationFrame(soundwaveFrameRef.current);
       soundwaveFrameRef.current = null;
     }
-    const scales = soundwaveScalesRef.current;
-    const idleHeight = (SOUNDWAVE_HEIGHT * 0.05).toFixed(1);
-    const idleY = (SOUNDWAVE_HEIGHT * 0.95).toFixed(1);
-    soundwaveCurvesRef.current.forEach((bar, index) => {
-      if (!bar) return;
-      scales[index] = 0.05;
-      bar.setAttribute('height', idleHeight);
-      bar.setAttribute('y', idleY);
-      const glow = soundwaveGlowRefs.current[index];
-      if (glow) {
-        glow.setAttribute('height', idleHeight);
-        glow.setAttribute('y', idleY);
+    const levels = soundwaveLevelsRef.current;
+    for (let index = 0; index < SOUNDWAVE_CURVE_COUNT; index += 1) {
+      levels[index] = 0.05;
+    }
+    renderVisualizer();
+  };
+
+  const renderVisualizer = () => {
+    const levels = soundwaveLevelsRef.current;
+    const cx = SOUNDWAVE_WIDTH / 2;
+    const cy = SOUNDWAVE_HEIGHT / 2;
+
+    if (visualizerFormat === 'bars') {
+      const bars = soundwaveCurvesRef.current;
+      const glows = soundwaveGlowRefs.current;
+      for (let index = 0; index < bars.length; index += 1) {
+        const bar = bars[index];
+        if (!bar) continue;
+        const height = Math.max(0, levels[index] * SOUNDWAVE_HEIGHT);
+        bar.setAttribute('height', height.toFixed(1));
+        bar.setAttribute('y', (SOUNDWAVE_HEIGHT - height).toFixed(1));
+        const glow = glows[index];
+        if (glow) {
+          glow.setAttribute('height', height.toFixed(1));
+          glow.setAttribute('y', (SOUNDWAVE_HEIGHT - height).toFixed(1));
+        }
       }
-    });
+    } else if (visualizerFormat === 'circle') {
+      const elements = soundwaveCurvesRef.current;
+      const radius = 72;
+      const thickness = 4;
+      const maxLength = 28;
+      for (let index = 0; index < elements.length; index += 1) {
+        const el = elements[index];
+        if (!el) continue;
+        const angle = (index / elements.length) * Math.PI * 2;
+        const length = thickness + levels[index] * maxLength;
+        const centerX = cx + radius * Math.cos(angle);
+        const centerY = cy + radius * Math.sin(angle);
+        el.setAttribute('x', (centerX - length / 2).toFixed(1));
+        el.setAttribute('y', (centerY - thickness / 2).toFixed(1));
+        el.setAttribute('width', length.toFixed(1));
+        el.setAttribute('height', thickness.toFixed(1));
+        el.setAttribute(
+          'transform',
+          `rotate(${(angle * 180) / Math.PI},${centerX.toFixed(2)},${centerY.toFixed(2)})`
+        );
+        el.setAttribute('opacity', (0.4 + levels[index] * 0.6).toFixed(2));
+      }
+    } else if (visualizerFormat === 'wave') {
+      const path = soundwavePathRef.current;
+      if (!path) return;
+      const amplitude = 36;
+      const points: [number, number][] = [];
+      for (let index = 0; index < SOUNDWAVE_CURVE_COUNT; index += 1) {
+        const x = (index / (SOUNDWAVE_CURVE_COUNT - 1)) * SOUNDWAVE_WIDTH;
+        const y = cy + (levels[index] - 0.5) * amplitude * 2;
+        points.push([x, y]);
+      }
+      let d = `M${points[0][0].toFixed(1)},${points[0][1].toFixed(1)}`;
+      for (let i = 1; i < points.length; i += 1) {
+        d += ` L${points[i][0].toFixed(1)},${points[i][1].toFixed(1)}`;
+      }
+      path.setAttribute('d', d);
+    } else if (visualizerFormat === 'radial') {
+      const elements = soundwaveCurvesRef.current;
+      const maxRadius = 78;
+      const thickness = 3;
+      for (let index = 0; index < elements.length; index += 1) {
+        const el = elements[index];
+        if (!el) continue;
+        const angle = (index / elements.length) * Math.PI * 2;
+        const length = Math.max(1, levels[index] * maxRadius);
+        el.setAttribute('x', (cx - thickness / 2).toFixed(1));
+        el.setAttribute('y', cy.toFixed(1));
+        el.setAttribute('width', thickness.toFixed(1));
+        el.setAttribute('height', length.toFixed(1));
+        el.setAttribute(
+          'transform',
+          `rotate(${(angle * 180) / Math.PI},${cx.toFixed(2)},${cy.toFixed(2)})`
+        );
+        el.setAttribute('opacity', (0.3 + levels[index] * 0.7).toFixed(2));
+      }
+    } else if (visualizerFormat === 'dots') {
+      const elements = soundwaveCurvesRef.current;
+      const baseRadius = 2;
+      const maxRadius = 9;
+      for (let index = 0; index < elements.length; index += 1) {
+        const el = elements[index];
+        if (!el) continue;
+        const x = (index / (elements.length - 1)) * SOUNDWAVE_WIDTH;
+        const radius = baseRadius + levels[index] * maxRadius;
+        el.setAttribute('cx', x.toFixed(1));
+        el.setAttribute('cy', cy.toFixed(1));
+        el.setAttribute('r', radius.toFixed(1));
+        el.setAttribute('opacity', (0.3 + levels[index] * 0.7).toFixed(2));
+      }
+    }
   };
 
   const startSoundwave = () => {
@@ -249,9 +338,10 @@ function App() {
     if (!analyser) return;
     if (soundwaveFrameRef.current !== null) return;
     const frequencyData = new Uint8Array(analyser.frequencyBinCount);
-    const scales = soundwaveScalesRef.current;
-    const bars = soundwaveCurvesRef.current;
-    const glows = soundwaveGlowRefs.current;
+    const levels = soundwaveLevelsRef.current;
+    for (let index = 0; index < SOUNDWAVE_CURVE_COUNT; index += 1) {
+      levels[index] = 0.05;
+    }
     const animate = () => {
       analyser.getByteFrequencyData(frequencyData);
       let frameMax = 0;
@@ -263,28 +353,19 @@ function App() {
       const gate = Math.max(40, frameMax * 0.32);
       const span = Math.max(1, frameMax - gate);
       const usableBins = Math.max(4, highest - 2);
-      for (let index = 0; index < bars.length; index += 1) {
-        const bar = bars[index];
-        if (!bar) continue;
-        const position = index / Math.max(1, bars.length - 1);
+      for (let index = 0; index < SOUNDWAVE_CURVE_COUNT; index += 1) {
+        const position = index / Math.max(1, SOUNDWAVE_CURVE_COUNT - 1);
         const bin = Math.round(2 + Math.pow(position, 1.25) * usableBins);
         const level = Math.min(
           1,
           Math.max(0, (frequencyData[bin] - gate) / span)
         );
         const target = 0.15 + level * 0.8;
-        const current = scales[index] ?? 0.05;
+        const current = levels[index] ?? 0.05;
         const next = current + (target - current) * 0.18;
-        scales[index] = next;
-        const height = Math.max(0, next * SOUNDWAVE_HEIGHT);
-        bar.setAttribute('height', height.toFixed(1));
-        bar.setAttribute('y', (SOUNDWAVE_HEIGHT - height).toFixed(1));
-        const glow = glows[index];
-        if (glow) {
-          glow.setAttribute('height', height.toFixed(1));
-          glow.setAttribute('y', (SOUNDWAVE_HEIGHT - height).toFixed(1));
-        }
+        levels[index] = next;
       }
+      renderVisualizer();
       soundwaveFrameRef.current = requestAnimationFrame(animate);
     };
     animate();
@@ -1081,6 +1162,21 @@ function App() {
                 <option value="sawtooth">Bright</option>
               </select>
             </label>
+            <label className="synth-wave-select">
+              Visualizer
+              <select
+                value={visualizerFormat}
+                onChange={event =>
+                  setVisualizerFormat(event.target.value as SoundwaveFormat)
+                }
+              >
+                {SOUNDWAVE_FORMATS.map(format => (
+                  <option key={format.id} value={format.id}>
+                    {format.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <div
             className={`synth-wave-visual ${
@@ -1124,48 +1220,125 @@ function App() {
                   </linearGradient>
                 ))}
               </defs>
-              <g aria-hidden="true" className="soundwave-glow">
-                {SOUNDWAVE_CURVES.map((_, index) => {
-                  const gradientIndex = index % SOUNDWAVE_GRADIENTS.length;
-                  return (
-                    <rect
-                      key={`glow-${index}`}
-                      ref={element => {
-                        soundwaveGlowRefs.current[index] = element;
-                      }}
-                      className="soundwave-glow-bar"
-                      x={index * 15 + 2}
-                      y={SOUNDWAVE_HEIGHT}
-                      width="11"
-                      height="0"
-                      fill={`url(#soundwave-gradient-${gradientIndex})`}
-                      rx="3"
-                      opacity="0.5"
-                    />
-                  );
-                })}
-              </g>
-              <g aria-hidden="true" className="soundwave-bars">
-                {SOUNDWAVE_CURVES.map((_, index) => {
-                  const gradientIndex = index % SOUNDWAVE_GRADIENTS.length;
-                  return (
-                    <rect
-                      key={`bar-${index}`}
-                      ref={element => {
-                        soundwaveCurvesRef.current[index] = element;
-                      }}
-                      className="soundwave-bar"
-                      x={index * 15 + 2}
-                      y={SOUNDWAVE_HEIGHT}
-                      width="11"
-                      height="0"
-                      fill={`url(#soundwave-gradient-${gradientIndex})`}
-                      rx="2"
-                      style={{ animationDelay: `${index * 18}ms` }}
-                    />
-                  );
-                })}
-              </g>
+              {visualizerFormat === 'bars' && (
+                <>
+                  <g aria-hidden="true" className="soundwave-glow">
+                    {SOUNDWAVE_CURVES.map((_, index) => {
+                      const gradientIndex = index % SOUNDWAVE_GRADIENTS.length;
+                      return (
+                        <rect
+                          key={`glow-${index}`}
+                          ref={element => {
+                            soundwaveGlowRefs.current[index] = element;
+                          }}
+                          className="soundwave-glow-bar"
+                          x={index * 15 + 2}
+                          y={SOUNDWAVE_HEIGHT}
+                          width="11"
+                          height="0"
+                          fill={`url(#soundwave-gradient-${gradientIndex})`}
+                          rx="3"
+                          opacity="0.5"
+                        />
+                      );
+                    })}
+                  </g>
+                  <g aria-hidden="true" className="soundwave-bars">
+                    {SOUNDWAVE_CURVES.map((_, index) => {
+                      const gradientIndex = index % SOUNDWAVE_GRADIENTS.length;
+                      return (
+                        <rect
+                          key={`bar-${index}`}
+                          ref={element => {
+                            soundwaveCurvesRef.current[index] = element;
+                          }}
+                          className="soundwave-bar"
+                          x={index * 15 + 2}
+                          y={SOUNDWAVE_HEIGHT}
+                          width="11"
+                          height="0"
+                          fill={`url(#soundwave-gradient-${gradientIndex})`}
+                          rx="2"
+                          style={{ animationDelay: `${index * 18}ms` }}
+                        />
+                      );
+                    })}
+                  </g>
+                </>
+              )}
+              {visualizerFormat === 'circle' && (
+                <g aria-hidden="true" className="soundwave-circle">
+                  {SOUNDWAVE_CURVES.map((_, index) => {
+                    const gradientIndex = index % SOUNDWAVE_GRADIENTS.length;
+                    return (
+                      <rect
+                        key={`circle-${index}`}
+                        ref={element => {
+                          soundwaveCurvesRef.current[index] = element;
+                        }}
+                        className="soundwave-circle-bar"
+                        width="0"
+                        height="4"
+                        fill={`url(#soundwave-gradient-${gradientIndex})`}
+                        rx="2"
+                      />
+                    );
+                  })}
+                </g>
+              )}
+              {visualizerFormat === 'wave' && (
+                <path
+                  ref={soundwavePathRef}
+                  className="soundwave-wave-path"
+                  fill="none"
+                  stroke="url(#soundwave-gradient-0)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              )}
+              {visualizerFormat === 'radial' && (
+                <g aria-hidden="true" className="soundwave-radial">
+                  {SOUNDWAVE_CURVES.map((_, index) => {
+                    const gradientIndex = index % SOUNDWAVE_GRADIENTS.length;
+                    return (
+                      <rect
+                        key={`radial-${index}`}
+                        ref={element => {
+                          soundwaveCurvesRef.current[index] = element;
+                        }}
+                        className="soundwave-radial-bar"
+                        x="0"
+                        y="0"
+                        width="3"
+                        height="0"
+                        fill={`url(#soundwave-gradient-${gradientIndex})`}
+                        rx="1.5"
+                      />
+                    );
+                  })}
+                </g>
+              )}
+              {visualizerFormat === 'dots' && (
+                <g aria-hidden="true" className="soundwave-dots">
+                  {SOUNDWAVE_CURVES.map((_, index) => {
+                    const gradientIndex = index % SOUNDWAVE_GRADIENTS.length;
+                    return (
+                      <circle
+                        key={`dot-${index}`}
+                        ref={element => {
+                          soundwaveCurvesRef.current[index] = element;
+                        }}
+                        className="soundwave-dot"
+                        cx="0"
+                        cy={SOUNDWAVE_CENTER}
+                        r="2"
+                        fill={`url(#soundwave-gradient-${gradientIndex})`}
+                      />
+                    );
+                  })}
+                </g>
+              )}
               {SOUNDWAVE_CURVES.map((_, index) => {
                 const frequency =
                   220 *
