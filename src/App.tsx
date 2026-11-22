@@ -192,6 +192,7 @@ function App() {
   const soundwaveLevelsRef = useRef<number[]>([]);
   const soundwavePathRef = useRef<SVGPathElement | null>(null);
   const visualizerFormatRef = useRef<SoundwaveFormat>('bars');
+  const visualizerRotationRef = useRef(0);
   const [selectedStationId, setSelectedStationId] = useLocalStorageState<string>(
     'homehub-ucb-station',
     DEFAULT_UCB_STATION_ID
@@ -266,12 +267,16 @@ function App() {
       const elements = soundwaveCurvesRef.current;
       const radius = 72;
       const thickness = 4;
-      const maxLength = 28;
+      const maxLength = 40;
+      const spin = (visualizerRotationRef.current * 180) / Math.PI;
       for (let index = 0; index < elements.length; index += 1) {
         const el = elements[index];
         if (!el) continue;
         const angle = (index / elements.length) * Math.PI * 2;
-        const length = thickness + levels[index] * maxLength;
+        const beatPulse = 1 + Math.sin(visualizerRotationRef.current * 3) * 0.15;
+        const length =
+          thickness +
+          levels[index] * maxLength * beatPulse;
         const centerX = cx + radius * Math.cos(angle);
         const centerY = cy + radius * Math.sin(angle);
         el.setAttribute('x', (centerX - length / 2).toFixed(1));
@@ -280,7 +285,7 @@ function App() {
         el.setAttribute('height', thickness.toFixed(1));
         el.setAttribute(
           'transform',
-          `rotate(${(angle * 180) / Math.PI},${centerX.toFixed(2)},${centerY.toFixed(2)})`
+          `rotate(${spin + (angle * 180) / Math.PI},${centerX.toFixed(2)},${centerY.toFixed(2)})`
         );
         el.setAttribute('opacity', (0.4 + levels[index] * 0.6).toFixed(2));
       }
@@ -301,22 +306,24 @@ function App() {
       path.setAttribute('d', d);
     } else if (visualizerFormatRef.current === 'radial') {
       const elements = soundwaveCurvesRef.current;
-      const maxRadius = 78;
+      const maxRadius = 96;
       const thickness = 3;
+      const spin = (visualizerRotationRef.current * 180) / Math.PI;
       for (let index = 0; index < elements.length; index += 1) {
         const el = elements[index];
         if (!el) continue;
         const angle = (index / elements.length) * Math.PI * 2;
-        const length = Math.max(1, levels[index] * maxRadius);
+        const beatPulse = 1 + Math.cos(visualizerRotationRef.current * 2) * 0.1;
+        const length = Math.max(1, levels[index] * maxRadius * beatPulse);
         el.setAttribute('x', (cx - thickness / 2).toFixed(1));
         el.setAttribute('y', cy.toFixed(1));
         el.setAttribute('width', thickness.toFixed(1));
         el.setAttribute('height', length.toFixed(1));
         el.setAttribute(
           'transform',
-          `rotate(${(angle * 180) / Math.PI},${cx.toFixed(2)},${cy.toFixed(2)})`
+          `rotate(${spin + (angle * 180) / Math.PI},${cx.toFixed(2)},${cy.toFixed(2)})`
         );
-        el.setAttribute('opacity', (0.3 + levels[index] * 0.7).toFixed(2));
+        el.setAttribute('opacity', (0.2 + levels[index] * 0.8).toFixed(2));
       }
     } else if (visualizerFormatRef.current === 'dots') {
       const elements = soundwaveCurvesRef.current;
@@ -367,6 +374,7 @@ function App() {
         const next = current + (target - current) * 0.18;
         levels[index] = next;
       }
+      visualizerRotationRef.current += 0.025;
       renderVisualizer();
       soundwaveFrameRef.current = requestAnimationFrame(animate);
     };
