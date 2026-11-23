@@ -945,6 +945,42 @@ button {
   font-size: 11px;
   margin-top: 25px;
 }
+
+/* Coming Up card: bigger, more readable fonts */
+.upcoming-panel .eyebrow {
+  font-size: 11px;
+  letter-spacing: 2px;
+  font-weight: 800;
+  color: #b8e3d2;
+}
+
+.upcoming-panel .panel-heading h2 {
+  font: 700 20px Manrope;
+  letter-spacing: -0.5px;
+}
+
+.upcoming-date strong {
+  font: 700 18px Manrope;
+  line-height: 1;
+}
+
+.upcoming-date span {
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.upcoming-item > div:last-child strong {
+  font-size: 13px;
+}
+
+.upcoming-item > div:last-child span {
+  font-size: 10px;
+  color: #9aa5b0;
+}
+
+.upcoming-empty {
+  font-size: 12px;
+}
 .footer {
   display: flex;
   justify-content: space-between;
