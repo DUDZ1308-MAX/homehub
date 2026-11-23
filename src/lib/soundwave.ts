@@ -196,7 +196,7 @@ const buildCurves = () =>
     };
   });
 
-export type SoundwaveFormat = 'bars' | 'circle' | 'wave' | 'radial' | 'dots';
+export type SoundwaveFormat = 'bars' | 'wave' | 'radar' | 'dots' | 'splash';
 
 export const SOUNDWAVE_FORMATS: { id: SoundwaveFormat; label: string; description: string }[] = [
   {
@@ -205,24 +205,24 @@ export const SOUNDWAVE_FORMATS: { id: SoundwaveFormat; label: string; descriptio
     description: 'Vertical bars that pulse with the music',
   },
   {
-    id: 'circle',
-    label: 'Circular',
-    description: 'Bars arranged in a rotating circle',
-  },
-  {
     id: 'wave',
     label: 'Oscilloscope Wave',
     description: 'Smooth waveform tracing the audio',
   },
   {
-    id: 'radial',
-    label: 'Radial Bars',
-    description: 'Bars radiating from the center',
+    id: 'radar',
+    label: 'Radar',
+    description: 'Bars arranged in a circle with a rotating sweep line',
   },
   {
     id: 'dots',
     label: 'Particle Dots',
     description: 'Dots that grow and shrink with the beat',
+  },
+  {
+    id: 'splash',
+    label: 'Water Splash',
+    description: 'Colored liquid splashes that burst with the beat',
   },
 ];
 

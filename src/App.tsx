@@ -192,7 +192,8 @@ function App() {
   const soundwaveLevelsRef = useRef<number[]>([]);
   const soundwavePathRef = useRef<SVGPathElement | null>(null);
   const visualizerFormatRef = useRef<SoundwaveFormat>('bars');
-  const visualizerRotationRef = useRef(0);
+  const soundwaveSplashRefs = useRef<(SVGCircleElement | null)[]>([]);
+  const soundwaveSplashState = useRef<Array<{ x: number; y: number; ripples: Array<{ radius: number; opacity: number; maxRadius: number }> }>>([]);
   const [selectedStationId, setSelectedStationId] = useLocalStorageState<string>(
     'homehub-ucb-station',
     DEFAULT_UCB_STATION_ID
@@ -240,6 +241,14 @@ function App() {
     for (let index = 0; index < SOUNDWAVE_CURVE_COUNT; index += 1) {
       levels[index] = 0.05;
     }
+    // Clear splash ripples
+    for (let s = 0; s < soundwaveSplashState.current.length; s += 1) {
+      soundwaveSplashState.current[s].ripples = [];
+    }
+    for (let i = 0; i < soundwaveSplashRefs.current.length; i += 1) {
+      const el = soundwaveSplashRefs.current[i];
+      if (el) el.setAttribute('display', 'none');
+    }
     renderVisualizer();
   };
 
@@ -263,32 +272,6 @@ function App() {
           glow.setAttribute('y', (SOUNDWAVE_HEIGHT - height).toFixed(1));
         }
       }
-    } else if (visualizerFormatRef.current === 'circle') {
-      const elements = soundwaveCurvesRef.current;
-      const radius = 72;
-      const thickness = 4;
-      const maxLength = 40;
-      const spin = (visualizerRotationRef.current * 180) / Math.PI;
-      for (let index = 0; index < elements.length; index += 1) {
-        const el = elements[index];
-        if (!el) continue;
-        const angle = (index / elements.length) * Math.PI * 2;
-        const beatPulse = 1 + Math.sin(visualizerRotationRef.current * 3) * 0.15;
-        const length =
-          thickness +
-          levels[index] * maxLength * beatPulse;
-        const centerX = cx + radius * Math.cos(angle);
-        const centerY = cy + radius * Math.sin(angle);
-        el.setAttribute('x', (centerX - length / 2).toFixed(1));
-        el.setAttribute('y', (centerY - thickness / 2).toFixed(1));
-        el.setAttribute('width', length.toFixed(1));
-        el.setAttribute('height', thickness.toFixed(1));
-        el.setAttribute(
-          'transform',
-          `rotate(${spin + (angle * 180) / Math.PI},${centerX.toFixed(2)},${centerY.toFixed(2)})`
-        );
-        el.setAttribute('opacity', (0.4 + levels[index] * 0.6).toFixed(2));
-      }
     } else if (visualizerFormatRef.current === 'wave') {
       const path = soundwavePathRef.current;
       if (!path) return;
@@ -304,26 +287,23 @@ function App() {
         d += ` L${points[i][0].toFixed(1)},${points[i][1].toFixed(1)}`;
       }
       path.setAttribute('d', d);
-    } else if (visualizerFormatRef.current === 'radial') {
+    } else if (visualizerFormatRef.current === 'radar') {
       const elements = soundwaveCurvesRef.current;
-      const maxRadius = 96;
-      const thickness = 3;
-      const spin = (visualizerRotationRef.current * 180) / Math.PI;
+      const radius = 86;
+      const barWidth = 6;
       for (let index = 0; index < elements.length; index += 1) {
         const el = elements[index];
         if (!el) continue;
         const angle = (index / elements.length) * Math.PI * 2;
-        const beatPulse = 1 + Math.cos(visualizerRotationRef.current * 2) * 0.1;
-        const length = Math.max(1, levels[index] * maxRadius * beatPulse);
-        el.setAttribute('x', (cx - thickness / 2).toFixed(1));
-        el.setAttribute('y', cy.toFixed(1));
-        el.setAttribute('width', thickness.toFixed(1));
-        el.setAttribute('height', length.toFixed(1));
+        const length = levels[index] * radius;
+        const x = cx + Math.cos(angle) * length;
+        const y = cy + Math.sin(angle) * length;
+        const half = barWidth / 2;
         el.setAttribute(
-          'transform',
-          `rotate(${spin + (angle * 180) / Math.PI},${cx.toFixed(2)},${cy.toFixed(2)})`
+          'd',
+          `M${cx.toFixed(1)},${cy.toFixed(1)} L${(x - half).toFixed(1)},${(y - half).toFixed(1)} L${(x + half).toFixed(1)},${(y + half).toFixed(1)} Z`
         );
-        el.setAttribute('opacity', (0.2 + levels[index] * 0.8).toFixed(2));
+        el.setAttribute('opacity', (0.3 + levels[index] * 0.7).toFixed(2));
       }
     } else if (visualizerFormatRef.current === 'dots') {
       const elements = soundwaveCurvesRef.current;
@@ -339,6 +319,62 @@ function App() {
         el.setAttribute('r', radius.toFixed(1));
         el.setAttribute('opacity', (0.3 + levels[index] * 0.7).toFixed(2));
       }
+    } else if (visualizerFormatRef.current === 'splash') {
+      const state = soundwaveSplashState.current;
+      const frameMax = Math.max(...levels) * 255;
+      const spawnChance = frameMax / 255;
+
+      // Spawn new ripples when volume is high
+      for (let s = 0; s < state.length; s += 1) {
+        if (Math.random() < spawnChance * 0.3) {
+          state[s].ripples.push({
+            radius: 2,
+            opacity: 0.9,
+            maxRadius: 30 + Math.random() * 50,
+          });
+        }
+      }
+
+      // Update and render ripples
+      for (let s = 0; s < state.length; s += 1) {
+        const source = state[s];
+        const refs = soundwaveSplashRefs.current;
+        // Ensure we have enough ref elements for this source's max ripples
+        const maxRipples = 6;
+        while (refs[s * maxRipples] === undefined) {
+          // refs are populated via JSX, so we just track count
+          break;
+        }
+
+        let activeIndex = 0;
+        for (let r = source.ripples.length - 1; r >= 0; r -= 1) {
+          const ripple = source.ripples[r];
+          ripple.radius += 2.5;
+          ripple.opacity -= 0.04;
+
+          if (ripple.opacity > 0 && ripple.radius < ripple.maxRadius) {
+            const el = refs[s * maxRipples + activeIndex];
+            if (el) {
+              el.setAttribute('cx', source.x.toFixed(1));
+              el.setAttribute('cy', source.y.toFixed(1));
+              el.setAttribute('r', ripple.radius.toFixed(1));
+              el.setAttribute('stroke-opacity', ripple.opacity.toFixed(2));
+              el.setAttribute('fill-opacity', (ripple.opacity * 0.15).toFixed(2));
+              el.setAttribute('stroke-width', Math.max(1, ripple.opacity * 3).toFixed(1));
+              el.setAttribute('display', 'block');
+            }
+            activeIndex += 1;
+          } else {
+            source.ripples.splice(r, 1);
+          }
+        }
+
+        // Hide unused refs for this source
+        for (let h = activeIndex; h < maxRipples; h += 1) {
+          const el = refs[s * maxRipples + h];
+          if (el) el.setAttribute('display', 'none');
+        }
+      }
     }
   };
 
@@ -351,6 +387,20 @@ function App() {
     for (let index = 0; index < SOUNDWAVE_CURVE_COUNT; index += 1) {
       levels[index] = 0.05;
     }
+
+    // Initialize splash sources if needed
+    if (soundwaveSplashState.current.length === 0) {
+      const sourceCount = 14;
+      const spacing = SOUNDWAVE_WIDTH / (sourceCount + 1);
+      for (let i = 0; i < sourceCount; i += 1) {
+        soundwaveSplashState.current.push({
+          x: spacing * (i + 1),
+          y: SOUNDWAVE_CENTER,
+          ripples: [],
+        });
+      }
+    }
+
     const animate = () => {
       analyser.getByteFrequencyData(frequencyData);
       let frameMax = 0;
@@ -374,7 +424,6 @@ function App() {
         const next = current + (target - current) * 0.18;
         levels[index] = next;
       }
-      visualizerRotationRef.current += 0.025;
       renderVisualizer();
       soundwaveFrameRef.current = requestAnimationFrame(animate);
     };
@@ -1276,26 +1325,6 @@ function App() {
                   </g>
                 </>
               )}
-              {visualizerFormatRef.current === 'circle' && (
-                <g aria-hidden="true" className="soundwave-circle">
-                  {SOUNDWAVE_CURVES.map((_, index) => {
-                    const gradientIndex = index % SOUNDWAVE_GRADIENTS.length;
-                    return (
-                      <rect
-                        key={`circle-${index}`}
-                        ref={element => {
-                          soundwaveCurvesRef.current[index] = element;
-                        }}
-                        className="soundwave-circle-bar"
-                        width="0"
-                        height="4"
-                        fill={`url(#soundwave-gradient-${gradientIndex})`}
-                        rx="2"
-                      />
-                    );
-                  })}
-                </g>
-              )}
               {visualizerFormatRef.current === 'wave' && (
                 <path
                   ref={soundwavePathRef}
@@ -1307,23 +1336,19 @@ function App() {
                   strokeLinejoin="round"
                 />
               )}
-              {visualizerFormatRef.current === 'radial' && (
-                <g aria-hidden="true" className="soundwave-radial">
+              {visualizerFormatRef.current === 'radar' && (
+                <g aria-hidden="true" className="soundwave-radar">
                   {SOUNDWAVE_CURVES.map((_, index) => {
                     const gradientIndex = index % SOUNDWAVE_GRADIENTS.length;
                     return (
-                      <rect
-                        key={`radial-${index}`}
+                      <polygon
+                        key={`radar-${index}`}
                         ref={element => {
                           soundwaveCurvesRef.current[index] = element;
                         }}
-                        className="soundwave-radial-bar"
-                        x="0"
-                        y="0"
-                        width="3"
-                        height="0"
+                        className="soundwave-radar-bar"
+                        points="0,0 0,0 0,0"
                         fill={`url(#soundwave-gradient-${gradientIndex})`}
-                        rx="1.5"
                       />
                     );
                   })}
@@ -1346,6 +1371,34 @@ function App() {
                         fill={`url(#soundwave-gradient-${gradientIndex})`}
                       />
                     );
+                  })}
+                </g>
+              )}
+              {visualizerFormatRef.current === 'splash' && (
+                <g aria-hidden="true" className="soundwave-splash">
+                  {Array.from({ length: 14 }, (_, s) => {
+                    const gradientIndex = s % SOUNDWAVE_GRADIENTS.length;
+                    return Array.from({ length: 6 }, (_, r) => {
+                      const rippleIndex = s * 6 + r;
+                      return (
+                        <circle
+                          key={`splash-${s}-${r}`}
+                          ref={element => {
+                            soundwaveSplashRefs.current[rippleIndex] = element;
+                          }}
+                          className="soundwave-splash-ripple"
+                          cx="0"
+                          cy="0"
+                          r="0"
+                          fill={`url(#soundwave-gradient-${gradientIndex})`}
+                          stroke={`url(#soundwave-gradient-${gradientIndex})`}
+                          strokeWidth="2"
+                          fillOpacity="0.15"
+                          strokeOpacity="0"
+                          display="none"
+                        />
+                      );
+                    });
                   })}
                 </g>
               )}

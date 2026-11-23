@@ -1707,19 +1707,13 @@ button {
   .soundwave-bar, .soundwave-glow-bar, .synth-wave-visual::before { animation:none !important; }
 }
 
-/* Circular visualizer */
-.soundwave-circle-bar {
-  transform-origin: center;
-  will-change: transform, opacity;
-}
-
 /* Oscilloscope wave */
 .soundwave-wave-path {
   filter: drop-shadow(0 0 6px currentColor);
 }
 
-/* Radial visualizer */
-.soundwave-radial-bar {
+/* Radar visualizer */
+.soundwave-radar-bar {
   transform-origin: center;
   will-change: transform, opacity;
 }
@@ -1727,6 +1721,11 @@ button {
 /* Particle dots */
 .soundwave-dot {
   will-change: r, opacity;
+}
+
+/* Water splash */
+.soundwave-splash-ripple {
+  will-change: r, opacity, stroke-opacity, fill-opacity;
 }
 
 /* Visualizer format dropdown */
@@ -1740,14 +1739,9 @@ button {
   font-size: 10px;
 }
 
-/* Ensure the SVG container accommodates circular/radial formats */
+/* Ensure the SVG container accommodates all visualizer formats */
 .synth-wave-visual svg {
   overflow: visible;
-}
-
-.soundwave-circle,
-.soundwave-radial {
-  transform-origin: 480px 95px;
 }
 .synth-controls { display: flex; align-items: center; gap: 10px; color: #a6b2bd; font-size: 10px; }
 .synth-controls span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
