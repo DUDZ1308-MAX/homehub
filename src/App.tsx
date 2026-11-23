@@ -192,6 +192,7 @@ function App() {
   const soundwaveLevelsRef = useRef<number[]>([]);
   const soundwavePathRef = useRef<SVGPathElement | null>(null);
   const visualizerFormatRef = useRef<SoundwaveFormat>('bars');
+  const radarSweepAngleRef = useRef(0);
   const soundwaveSplashRefs = useRef<(SVGCircleElement | null)[]>([]);
   const soundwaveSplashState = useRef<Array<{ x: number; y: number; ripples: Array<{ radius: number; opacity: number; maxRadius: number }> }>>([]);
   const [selectedStationId, setSelectedStationId] = useLocalStorageState<string>(
@@ -249,6 +250,8 @@ function App() {
       const el = soundwaveSplashRefs.current[i];
       if (el) el.setAttribute('display', 'none');
     }
+    // Reset radar sweep
+    radarSweepAngleRef.current = 0;
     renderVisualizer();
   };
 
@@ -289,21 +292,48 @@ function App() {
       path.setAttribute('d', d);
     } else if (visualizerFormatRef.current === 'radar') {
       const elements = soundwaveCurvesRef.current;
-      const radius = 86;
-      const barWidth = 6;
-      for (let index = 0; index < elements.length; index += 1) {
-        const el = elements[index];
+      const ringCount = 6;
+      const baseRadius = 14;
+      const maxRadius = 84;
+      const frameMax = Math.max(...levels);
+      const pulse = 0.35 + frameMax * 0.65; // 0.35 to 1.0
+      const beatSpeed = 0.015 + frameMax * 0.04; // faster when loud
+
+      // Draw concentric spider-web rings that pulse with volume
+      for (let r = 0; r < ringCount; r += 1) {
+        const el = elements[r];
         if (!el) continue;
-        const angle = (index / elements.length) * Math.PI * 2;
-        const length = levels[index] * radius;
-        const x = cx + Math.cos(angle) * length;
-        const y = cy + Math.sin(angle) * length;
-        const half = barWidth / 2;
-        el.setAttribute(
-          'd',
-          `M${cx.toFixed(1)},${cy.toFixed(1)} L${(x - half).toFixed(1)},${(y - half).toFixed(1)} L${(x + half).toFixed(1)},${(y + half).toFixed(1)} Z`
-        );
-        el.setAttribute('opacity', (0.3 + levels[index] * 0.7).toFixed(2));
+        const ringRadius = baseRadius * (r + 1) * pulse;
+        if (ringRadius > maxRadius) continue;
+        el.setAttribute('r', ringRadius.toFixed(1));
+        el.setAttribute('fill', 'none');
+        el.setAttribute('stroke', `url(#soundwave-gradient-${r % SOUNDWAVE_GRADIENTS.length})`);
+        el.setAttribute('stroke-width', '1.5');
+        el.setAttribute('stroke-opacity', (0.25 + frameMax * 0.5).toFixed(2));
+        el.setAttribute('display', 'block');
+      }
+
+      // Hide unused ring elements
+      for (let h = ringCount; h < elements.length - 1; h += 1) {
+        const el = elements[h];
+        if (el) el.setAttribute('display', 'none');
+      }
+
+      // Rotating sweep line — speed scales with beat intensity
+      radarSweepAngleRef.current += beatSpeed;
+      const sweepEl = elements[elements.length - 1];
+      if (sweepEl) {
+        const sweepRadius = maxRadius * pulse;
+        const sx = cx + Math.cos(radarSweepAngleRef.current) * sweepRadius;
+        const sy = cy + Math.sin(radarSweepAngleRef.current) * sweepRadius;
+        sweepEl.setAttribute('x1', cx.toFixed(1));
+        sweepEl.setAttribute('y1', cy.toFixed(1));
+        sweepEl.setAttribute('x2', sx.toFixed(1));
+        sweepEl.setAttribute('y2', sy.toFixed(1));
+        sweepEl.setAttribute('stroke', '#ffffff');
+        sweepEl.setAttribute('stroke-width', '2');
+        sweepEl.setAttribute('stroke-opacity', (0.6 + frameMax * 0.4).toFixed(2));
+        sweepEl.setAttribute('display', 'block');
       }
     } else if (visualizerFormatRef.current === 'dots') {
       const elements = soundwaveCurvesRef.current;
@@ -1340,17 +1370,44 @@ function App() {
                 <g aria-hidden="true" className="soundwave-radar">
                   {SOUNDWAVE_CURVES.map((_, index) => {
                     const gradientIndex = index % SOUNDWAVE_GRADIENTS.length;
-                    return (
-                      <polygon
-                        key={`radar-${index}`}
-                        ref={element => {
-                          soundwaveCurvesRef.current[index] = element;
-                        }}
-                        className="soundwave-radar-bar"
-                        points="0,0 0,0 0,0"
-                        fill={`url(#soundwave-gradient-${gradientIndex})`}
-                      />
-                    );
+                    // First 6 elements are concentric rings; last element is the sweep line
+                    if (index < 6) {
+                      return (
+                        <circle
+                          key={`radar-ring-${index}`}
+                          ref={element => {
+                            soundwaveCurvesRef.current[index] = element;
+                          }}
+                          className="soundwave-radar-ring"
+                          cx={SOUNDWAVE_WIDTH / 2}
+                          cy={SOUNDWAVE_HEIGHT / 2}
+                          r="0"
+                          fill="none"
+                          stroke={`url(#soundwave-gradient-${gradientIndex})`}
+                          strokeWidth="1.5"
+                          strokeOpacity="0.3"
+                        />
+                      );
+                    }
+                    if (index === SOUNDWAVE_CURVES.length - 1) {
+                      return (
+                        <line
+                          key={`radar-sweep`}
+                          ref={element => {
+                            soundwaveCurvesRef.current[index] = element;
+                          }}
+                          className="soundwave-radar-sweep"
+                          x1={SOUNDWAVE_WIDTH / 2}
+                          y1={SOUNDWAVE_HEIGHT / 2}
+                          x2={SOUNDWAVE_WIDTH / 2}
+                          y2={SOUNDWAVE_HEIGHT / 2}
+                          stroke="#ffffff"
+                          strokeWidth="2"
+                          strokeOpacity="0.6"
+                        />
+                      );
+                    }
+                    return null;
                   })}
                 </g>
               )}

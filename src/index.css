@@ -1728,6 +1728,14 @@ button {
   will-change: r, opacity, stroke-opacity, fill-opacity;
 }
 
+/* Radar visualizer */
+.soundwave-radar-ring {
+  will-change: r, stroke-opacity;
+}
+.soundwave-radar-sweep {
+  will-change: x1, y1, x2, y2, stroke-opacity;
+}
+
 /* Visualizer format dropdown */
 .synth-wave-select select {
   min-width: 105px;
